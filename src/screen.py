@@ -85,7 +85,38 @@ def screen(query: str, limit: int = 10, threshold: float = 0,
         for _, score, idx in results
     ]
 
+def evaluate_cases(cases: pd.DataFrame, methods: list[str]) -> pd.DataFrame:
+    print('bitch')
+    """Score each test case with each method. Nothing is stored."""
+    names = load_names()
+    names_by_id = names.groupby('Unique ID')['normalised_name'].apply(list).to_dict()
+    rows = []
 
+    for case in cases.itertuples(index=False):
+        query = normalise(str(case.test_name))
+        true_id = getattr(case, 'true_id', None)
+        true_id = true_id if isinstance(true_id, str) and true_id.strip() else None
+
+        for method in methods:
+            scorer = METHODS[method]
+            _, top_score, idx = process.extractOne(query, names['normalised_name'], scorer=scorer)
+
+            true_score = None
+            if true_id in names_by_id:
+                true_score = max(scorer(query, n) for n in names_by_id[true_id])
+
+            rows.append({
+                'test_name': case.test_name,
+                'true_id': true_id,
+                'variation_type': getattr(case, 'variation_type', None) or 'unlabelled',
+                'method': method,
+                'top_match': names.at[idx, 'full_name'],
+                'top_id': names.at[idx, 'Unique ID'],
+                'top_score': round(top_score, 1),
+                'true_score': None if true_score is None else round(true_score, 1),
+            })
+
+    return pd.DataFrame(rows)
 
 if __name__ == '__main__':
     for match in screen('Vladimir Putin', limit=5):
