@@ -1,0 +1,13 @@
+@font-face {
+  font-family: 'Neue Haas';
+  src: url('/fonts/NeueHaasDisplayMedium.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  font-family: 'Neue Haas', ui-monospace, monospace;
+  background-color: #161616;
+  color: #f5f5f5;
+}
