@@ -33,9 +33,15 @@ def normalise(name: str) -> str:
     return name.strip()
 
 
+
 def hybrid(s1: str, s2: str, **kwargs) -> float:
-    """Single word on either side: strict comparison. Otherwise: word-based."""
-    if len(s1.split()) == 1 or len(s2.split()) == 1:
+    """Single unique word on either side: strict comparison. Otherwise: word-based.
+
+    Uses unique words, because token_set_ratio treats 'aung aung' as just 'aung'.
+    """
+    words1, words2 = set(s1.split()), set(s2.split())
+
+    if len(words1) == 1 or len(words2) == 1:
         return fuzz.ratio(s1, s2)
     return fuzz.token_set_ratio(s1, s2)
 
@@ -86,7 +92,7 @@ def screen(query: str, limit: int = 10, threshold: float = 0,
     ]
 
 def evaluate_cases(cases: pd.DataFrame, methods: list[str]) -> pd.DataFrame:
-    print('bitch')
+
     """Score each test case with each method. Nothing is stored."""
     names = load_names()
     names_by_id = names.groupby('Unique ID')['normalised_name'].apply(list).to_dict()
@@ -119,5 +125,16 @@ def evaluate_cases(cases: pd.DataFrame, methods: list[str]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 if __name__ == '__main__':
-    for match in screen('Vladimir Putin', limit=5):
-        print(match)
+    test_path = PROJECT_ROOT / 'data' / 'processed' / 'test_set.csv'
+    cases = pd.read_csv(test_path, dtype=str)
+
+    results = evaluate_cases(cases, ['hybrid'])
+
+    # Quick summary at a threshold of 85
+    should_match = results[results['true_id'].notna()]
+    should_not_match = results[results['true_id'].isna()]
+
+    print('Catch rate:', round((should_match['true_score'] >= 85).mean(), 3))
+    print('False alert rate:', round((should_not_match['top_score'] >= 85).mean(), 3))
+    # for match in screen('Vladimir Putin', limit=5):
+    #     print(match)
